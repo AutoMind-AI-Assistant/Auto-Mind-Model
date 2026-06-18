@@ -6,8 +6,8 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Vehicle Diagnostics - ML Model Training\n",
-    "This notebook contains the complete pipeline to train and evaluate a Random Forest Classifier on vehicle diagnostics sensor data."
+    "# Vehicle Maintenance - ML Model Training\n",
+    "This notebook contains the complete pipeline to train and evaluate a Random Forest Classifier on component-level maintenance rules."
    ]
   },
   {
@@ -27,6 +27,9 @@ notebook = {
     "import numpy as np\n",
     "from sklearn.model_selection import train_test_split\n",
     "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.preprocessing import OneHotEncoder\n",
+    "from sklearn.compose import ColumnTransformer\n",
+    "from sklearn.pipeline import Pipeline\n",
     "from sklearn.metrics import classification_report, accuracy_score, confusion_matrix\n",
     "import matplotlib.pyplot as plt\n",
     "import seaborn as sns\n",
@@ -40,7 +43,7 @@ notebook = {
     "# Configuration\n",
     "INPUT_FILE = 'vehicle_data.csv'\n",
     "MODEL_FILE = 'vehicle_model.pkl'\n",
-    "CLASS_NAMES = ['Healthy', 'Attention Required', 'Critical']"
+    "CLASS_NAMES = ['Healthy', 'Warning', 'Critical']"
    ]
   },
   {
@@ -75,7 +78,7 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### **Cell 3: Train the Model**"
+    "### **Cell 3: Train the Model with Pipeline**"
    ]
   },
   {
@@ -84,8 +87,26 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "print(\"Training Random Forest Classifier...\")\n",
-    "model = RandomForestClassifier(n_estimators=100, random_state=42)\n",
+    "print(\"Training Random Forest Classifier Pipeline...\")\n",
+    "\n",
+    "# Define preprocessing for categorical columns\n",
+    "categorical_features = ['component']\n",
+    "categorical_transformer = OneHotEncoder(handle_unknown='ignore')\n",
+    "\n",
+    "# Keep numeric features as they are\n",
+    "numeric_features = ['current_km', 'current_months', 'condition_metric_value']\n",
+    "\n",
+    "preprocessor = ColumnTransformer(\n",
+    "    transformers=[\n",
+    "        ('cat', categorical_transformer, categorical_features),\n",
+    "        ('num', 'passthrough', numeric_features)\n",
+    "    ])\n",
+    "    \n",
+    "model = Pipeline(steps=[\n",
+    "    ('preprocessor', preprocessor),\n",
+    "    ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))\n",
+    "])\n",
+    "\n",
     "model.fit(X_train, y_train)\n",
     "\n",
     "# Generate Predictions for the next cells\n",
@@ -143,62 +164,7 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### **Cell 6: Sample Prediction**"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "idx = np.random.randint(0, len(X_test))\n",
-    "sample_features = X_test.iloc[idx]\n",
-    "true_label = y_test.iloc[idx]\n",
-    "\n",
-    "# Get prediction and probabilities\n",
-    "prediction = model.predict([sample_features])[0]\n",
-    "probabilities = model.predict_proba([sample_features])[0]\n",
-    "\n",
-    "print(\"--- Sample Prediction ---\")\n",
-    "print(f\"Vehicle Data:\\n{sample_features.to_dict()}\")\n",
-    "print(f\"\\nTrue Label: {CLASS_NAMES[true_label]}\")\n",
-    "print(f\"Predicted Label: {CLASS_NAMES[prediction]}\")\n",
-    "\n",
-    "print(\"\\nPrediction Probabilities:\")\n",
-    "for cls_name, prob in zip(CLASS_NAMES, probabilities):\n",
-    "    print(f\"  {cls_name}: {prob * 100:.2f}%\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### **Cell 7: Feature Importances Visualization**"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "importances = model.feature_importances_\n",
-    "indices = np.argsort(importances)[::-1]\n",
-    "\n",
-    "plt.figure(figsize=(10, 6))\n",
-    "plt.title(\"Feature Importances (What the model cares about most)\")\n",
-    "plt.bar(range(X.shape[1]), importances[indices], align=\"center\")\n",
-    "plt.xticks(range(X.shape[1]), [X.columns[i] for i in indices], rotation=45)\n",
-    "plt.tight_layout()\n",
-    "plt.show()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### **Cell 8: Save Model**"
+    "### **Cell 6: Save Model**"
    ]
   },
   {
@@ -214,7 +180,7 @@ notebook = {
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
+   "display_name": "Python 3",
    "language": "python",
    "name": "python3"
   },

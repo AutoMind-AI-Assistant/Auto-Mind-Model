@@ -5,9 +5,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 app = FastAPI(
-    title="Vehicle Diagnostics API",
-    description="API to predict vehicle health status based on sensor inputs.",
-    version="1.0.0"
+    title="Vehicle Maintenance API",
+    description="API to predict vehicle maintenance requirements based on component rules.",
+    version="1.1.0"
 )
 
 MODEL_FILE = 'vehicle_model.pkl'
@@ -24,14 +24,11 @@ else:
     print(f"Warning: {MODEL_FILE} not found. Please run training script first.")
     model = None
 
-class VehicleSensorData(BaseModel):
-    engine_rpm: float = Field(..., example=1200.0, description="Engine RPM")
-    oil_pressure: float = Field(..., example=45.0, description="Oil pressure (PSI)")
-    fuel_level: float = Field(..., example=85.0, description="Fuel level percentage (0-100)")
-    coolant_temp: float = Field(..., example=88.0, description="Coolant temperature (Celsius)")
-    battery_voltage: float = Field(..., example=14.1, description="Battery voltage (V)")
-    mileage: float = Field(..., example=45000.0, description="Mileage (miles/km)")
-    days_since_service: float = Field(..., example=120.0, description="Days since last service")
+class ComponentData(BaseModel):
+    component: str = Field(..., example="Spark Plug", description="Component name")
+    current_km: float = Field(..., example=75000.0, description="Current mileage of component")
+    current_months: float = Field(..., example=45.0, description="Months since component was installed/serviced")
+    condition_metric_value: float = Field(..., example=4.0, description="Current value of the specific condition metric (e.g. misfire count)")
 
 class PredictionResponse(BaseModel):
     health_status: str
@@ -41,29 +38,26 @@ class PredictionResponse(BaseModel):
 @app.get("/")
 def read_root():
     return {
-        "message": "Welcome to the Vehicle Diagnostics API!",
+        "message": "Welcome to the Vehicle Maintenance API!",
         "model_loaded": model is not None,
         "docs_url": "/docs"
     }
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict(data: VehicleSensorData):
+def predict(data: ComponentData):
     if model is None:
         raise HTTPException(status_code=503, detail="Machine learning model is not loaded/available.")
     
     try:
         # Convert Pydantic model to dictionary
         sensor_dict = {
-            'engine_rpm': data.engine_rpm,
-            'oil_pressure': data.oil_pressure,
-            'fuel_level': data.fuel_level,
-            'coolant_temp': data.coolant_temp,
-            'battery_voltage': data.battery_voltage,
-            'mileage': data.mileage,
-            'days_since_service': data.days_since_service
+            'component': data.component,
+            'current_km': data.current_km,
+            'current_months': data.current_months,
+            'condition_metric_value': data.condition_metric_value
         }
         
-        # Convert to DataFrame as expected by the model
+        # Convert to DataFrame as expected by the model pipeline
         df = pd.DataFrame([sensor_dict])
         
         # Prediction
@@ -73,8 +67,8 @@ def predict(data: VehicleSensorData):
         probabilities = model.predict_proba(df)[0]
         
         # Map prediction index to status
-        status_map = {0: 'Healthy', 1: 'Attention Required', 2: 'Critical'}
-        class_names = ['Healthy', 'Attention Required', 'Critical']
+        status_map = {0: 'Healthy', 1: 'Warning', 2: 'Critical'}
+        class_names = ['Healthy', 'Warning', 'Critical']
         
         health_status = status_map.get(prediction_idx, "Unknown")
         
