@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -15,7 +18,7 @@ warnings.filterwarnings('ignore')
 # Configuration
 INPUT_FILE = 'vehicle_data.csv'
 MODEL_FILE = 'vehicle_model.pkl'
-CLASS_NAMES = ['Healthy', 'Attention Required', 'Critical']
+CLASS_NAMES = ['Healthy', 'Warning', 'Critical']
 
 def train_and_evaluate():
     # ----------------------------------------------------
@@ -36,10 +39,28 @@ def train_and_evaluate():
     print(f"Data loaded! Training samples: {len(X_train)} | Testing samples: {len(X_test)}")
 
     # ----------------------------------------------------
-    # Part 2: Train the Model
+    # Part 2: Train the Model with Pipeline
     # ----------------------------------------------------
-    print("\nTraining Random Forest Classifier...")
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    print("\nTraining Random Forest Classifier Pipeline...")
+    
+    # Define preprocessing for categorical columns
+    categorical_features = ['component']
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+    
+    # Keep numeric features as they are
+    numeric_features = ['current_km', 'current_months', 'condition_metric_value']
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', categorical_transformer, categorical_features),
+            ('num', 'passthrough', numeric_features)
+        ])
+        
+    model = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+    ])
+    
     model.fit(X_train, y_train)
     
     # Generate Predictions
@@ -74,49 +95,9 @@ def train_and_evaluate():
     cm_plot_path = 'confusion_matrix.png'
     plt.savefig(cm_plot_path)
     print(f"Confusion Matrix plot saved to '{cm_plot_path}'.")
-    plt.show()
 
     # ----------------------------------------------------
-    # Part 5: Sample Prediction
-    # ----------------------------------------------------
-    idx = np.random.randint(0, len(X_test))
-    sample_features = X_test.iloc[idx]
-    true_label = y_test.iloc[idx]
-    
-    # Get prediction and probabilities
-    prediction = model.predict([sample_features])[0]
-    probabilities = model.predict_proba([sample_features])[0]
-    
-    print("\n--- Sample Prediction ---")
-    print(f"Vehicle Data:\n{sample_features.to_dict()}")
-    print(f"\nTrue Label: {CLASS_NAMES[true_label]}")
-    print(f"Predicted Label: {CLASS_NAMES[prediction]}")
-    
-    print("\nPrediction Probabilities:")
-    for cls_name, prob in zip(CLASS_NAMES, probabilities):
-        print(f"  {cls_name}: {prob * 100:.2f}%")
-
-    # ----------------------------------------------------
-    # Part 6: Feature Importances Visualization
-    # ----------------------------------------------------
-    print("\nGenerating Feature Importances...")
-    importances = model.feature_importances_
-    indices = np.argsort(importances)[::-1]
-    
-    plt.figure(figsize=(10, 6))
-    plt.title("Feature Importances (What the model cares about most)")
-    plt.bar(range(X.shape[1]), importances[indices], align="center")
-    plt.xticks(range(X.shape[1]), [X.columns[i] for i in indices], rotation=45)
-    plt.tight_layout()
-    
-    # Save the plot as an image
-    fi_plot_path = 'feature_importances.png'
-    plt.savefig(fi_plot_path)
-    print(f"Feature Importances plot saved to '{fi_plot_path}'.")
-    plt.show()
-
-    # ----------------------------------------------------
-    # Part 7: Save Model
+    # Part 5: Save Model
     # ----------------------------------------------------
     joblib.dump(model, MODEL_FILE)
     print(f"\nModel saved successfully as '{MODEL_FILE}'.")
