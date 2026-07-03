@@ -24,9 +24,6 @@ def train_and_evaluate():
     # ----------------------------------------------------
     # Part 1: Load and Prepare Data
     # ----------------------------------------------------
-    if not os.path.exists(INPUT_FILE):
-        print(f"Error: {INPUT_FILE} NOT found. Please run 'generate_data.py' first.")
-        return
 
     df = pd.read_csv(INPUT_FILE)
     
