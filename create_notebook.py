@@ -164,7 +164,119 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### **Cell 6: Save Model**"
+    "#### **Saved Confusion Matrix Plot**\n",
+    "![Confusion Matrix](confusion_matrix.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### **Cell 6: Learning Curve (Generalization & Data Sufficiency)**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import learning_curve\n",
+    "\n",
+    "print(\"Generating Learning Curve...\")\n",
+    "train_sizes, train_scores, test_scores = learning_curve(\n",
+    "    model, X, y, cv=5, n_jobs=-1, \n",
+    "    train_sizes=np.linspace(0.1, 1.0, 10),\n",
+    "    scoring='accuracy',\n",
+    "    random_state=42\n",
+    ")\n",
+    "train_scores_mean = np.mean(train_scores, axis=1)\n",
+    "train_scores_std = np.std(train_scores, axis=1)\n",
+    "test_scores_mean = np.mean(test_scores, axis=1)\n",
+    "test_scores_std = np.std(test_scores, axis=1)\n",
+    "\n",
+    "plt.figure(figsize=(10, 6))\n",
+    "plt.title(\"Learning Curve (Random Forest Classifier)\", fontsize=14)\n",
+    "plt.xlabel(\"Training Examples\", fontsize=12)\n",
+    "plt.ylabel(\"Accuracy Score\", fontsize=12)\n",
+    "plt.grid(True, linestyle='--', alpha=0.7)\n",
+    "plt.fill_between(train_sizes, train_scores_mean - train_scores_std,\n",
+    "                 train_scores_mean + train_scores_std, alpha=0.15, color=\"crimson\")\n",
+    "plt.fill_between(train_sizes, test_scores_mean - test_scores_std,\n",
+    "                 test_scores_mean + test_scores_std, alpha=0.15, color=\"teal\")\n",
+    "plt.plot(train_sizes, train_scores_mean, 'o-', color=\"crimson\", label=\"Training Score\", linewidth=2)\n",
+    "plt.plot(train_sizes, test_scores_mean, 'o-', color=\"teal\", label=\"Cross-Validation Score\", linewidth=2)\n",
+    "plt.legend(loc=\"best\", fontsize=11)\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### **Saved Learning Curve Plot**\n",
+    "![Learning Curve](learning_curve.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### **Cell 7: Model Loss vs Number of Trees (Estimators)**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.metrics import log_loss\n",
+    "\n",
+    "print(\"Generating Loss vs Number of Trees...\")\n",
+    "n_estimators_range = list(range(5, 155, 5))\n",
+    "train_losses = []\n",
+    "test_losses = []\n",
+    "\n",
+    "for n_est in n_estimators_range:\n",
+    "    clf = Pipeline(steps=[\n",
+    "        ('preprocessor', preprocessor),\n",
+    "        ('classifier', RandomForestClassifier(n_estimators=n_est, random_state=42, n_jobs=-1))\n",
+    "    ])\n",
+    "    clf.fit(X_train, y_train)\n",
+    "    \n",
+    "    train_probs = clf.predict_proba(X_train)\n",
+    "    test_probs = clf.predict_proba(X_test)\n",
+    "    \n",
+    "    train_losses.append(log_loss(y_train, train_probs))\n",
+    "    test_losses.append(log_loss(y_test, test_probs))\n",
+    "\n",
+    "plt.figure(figsize=(10, 6))\n",
+    "plt.title(\"Model Loss vs Number of Trees (Estimators)\", fontsize=14)\n",
+    "plt.xlabel(\"Number of Trees\", fontsize=12)\n",
+    "plt.ylabel(\"Log Loss (Cross-Entropy Loss)\", fontsize=12)\n",
+    "plt.grid(True, linestyle='--', alpha=0.7)\n",
+    "plt.plot(n_estimators_range, train_losses, 's-', color=\"crimson\", label=\"Training Loss\", linewidth=2)\n",
+    "plt.plot(n_estimators_range, test_losses, 'o-', color=\"teal\", label=\"Test Loss\", linewidth=2)\n",
+    "plt.legend(loc=\"best\", fontsize=11)\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### **Saved Loss vs Trees Plot**\n",
+    "![Model Loss vs Number of Trees](loss_vs_trees.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### **Cell 8: Save Model**"
    ]
   },
   {
